@@ -1,14 +1,15 @@
-# boot.py -- run on boot-up
-from WIFI import do_connect, http_get
+""" # boot.py -- run on boot-up
+from WIFI import WIFI
 
 # WiFi Connection
 try:
-    ip = do_connect()
+    wifi = WIFI()
+    ip = wifi.do_connect()
 except KeyboardInterrupt:
     print("Keyboard interrupt")
 
 # HTTP request
 try:
-    http_get()
+    wifi.http_get()
 except Exception as err:
-    print("Exception", err)
+    print("Exception", err) """
