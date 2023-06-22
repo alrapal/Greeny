@@ -9,14 +9,14 @@ Import section
 '''
 
 import dht                 # import the builtin library
-from machine import ADC, Pin, PWM, unique_id    # library for pin access      
+from machine import ADC, Pin, unique_id    # library for pin access      
 from time import sleep    
 from secrets import adafruit_credentials, adafruit_mqtt_feeds
 import WIFI
 from mqtt import MQTTClient
 import ubinascii
 from sys import exit
-
+import gc
 '''
 ##################################################################################
 ##################################################################################
@@ -28,11 +28,6 @@ Global Variables and Objects
 '''
 
 DELAY = 2 # delay in ms
-
-# Credentials for LoRaWAN -> in secrets.py that is not pushed to avoid exposing credentials
-""" DEV_EUI = lorawan_credentials['DEV_EUI']
-APP_EUI = lorawan_credentials['APP_EUI']
-APP_KEY = lorawan_credentials['APP_KEY'] """
 
 # Adafruit IO (AIO) configuration
 AIO_SERVER = "io.adafruit.com"
@@ -46,7 +41,6 @@ AIO_AMBIENT_HUMI_FEED = adafruit_mqtt_feeds['ambient_humidity']
 
 # Connector objects
 wifi = WIFI.WIFI(debug=True)
-# lora = lora(debug=DEBUG) # Declare and assign lora object. Change DEBUG on line 9 for activating
 mqtt_client = MQTTClient(AIO_CLIENT_ID, AIO_SERVER, AIO_PORT, AIO_USER, AIO_KEY)
 
 '''
@@ -79,7 +73,7 @@ def connect(debug: bool = False) -> None:
     mqtt_client.connect()           # connect to mqtt
     mqtt_client.publish(topic="paralex/feeds/last-will", msg="0") # publish a connection status to the adafruit interface
     if debug:
-        print("Connected to %s, subscribed to %s topic" % (AIO_SERVER, AIO_BUILTIN_LED_FEED)) #print info if debug is set
+        print("Connected to %s" % (AIO_SERVER)) #print info if debug is set
 
 def disconnect(debug:bool = False) -> None:
     '''
@@ -124,12 +118,14 @@ def are_equal_readings(previous: int, current: int) -> bool:
     '''
     return previous == current
 
-def main(debug: bool = False): 
-    '''
-    Main function.
-    Check button status and connection status and connect disconnect accordingly. 
-    Reads the sensors values and send the, via mqtt if connection
-    '''
+
+'''
+Main function.
+Check button status and connection status and connect disconnect accordingly. 
+Reads the sensors values and send the, via mqtt if connection
+'''
+
+def main(debug:bool = False):
     debug = debug
     is_connected = False # When booting, the connection has not happened yet
     previous_temp = 0
@@ -174,7 +170,10 @@ def main(debug: bool = False):
                     # TODO: add publication when feed created
             else:
                 print("Press the button to initialise connection")
-             # add a small delay to smoothen the loop
+                # add a small delay to smoothen the loop
+            gc.collect() # call garbage collector to free memory after each iteration and avoid memory leak.
+            if debug:
+                print("Available memory: ", gc.mem_free())
             sleep(DELAY)     
         except Exception as e:
                 print(str(e)) # print exception messages
@@ -191,3 +190,4 @@ Main
 '''
 
 main(debug=True)
+
