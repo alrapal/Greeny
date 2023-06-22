@@ -11,7 +11,7 @@ Import section
 import dht                 # import the builtin library
 from machine import ADC, Pin, unique_id    # library for pin access      
 from time import sleep    
-from secrets import adafruit_credentials, adafruit_mqtt_feeds
+from my_secrets import adafruit_credentials, adafruit_mqtt_feeds
 import WIFI
 from mqtt import MQTTClient
 import ubinascii
@@ -39,10 +39,6 @@ AIO_AMBIENT_TEMP_FEED = adafruit_mqtt_feeds['ambient_temperature']
 AIO_BUILTIN_LED_FEED = adafruit_mqtt_feeds['built_in_led']
 AIO_AMBIENT_HUMI_FEED = adafruit_mqtt_feeds['ambient_humidity']
 
-# Connector objects
-wifi = WIFI.WIFI(debug=True)
-mqtt_client = MQTTClient(AIO_CLIENT_ID, AIO_SERVER, AIO_PORT, AIO_USER, AIO_KEY)
-
 '''
 Sensor section
 '''
@@ -55,6 +51,19 @@ dht11_sensor = dht.DHT11(Pin(27))     # DHT11 Constructor connected to pin analo
 # Built in
 led = Pin("LED", Pin.OUT)           # Built in LED
 
+def blink(): 
+    led.value(1)
+    sleep(1)
+    led.value(0)
+    sleep(1)
+    
+blink()
+
+# Connector objects
+wifi = WIFI.WIFI(debug=True)
+mqtt_client = MQTTClient(AIO_CLIENT_ID, AIO_SERVER, AIO_PORT, AIO_USER, AIO_KEY)
+
+blink()
 '''
 ##################################################################################
 ##################################################################################
@@ -151,6 +160,9 @@ def main(debug:bool = False):
             elif is_connected and previous_button_status:
                 disconnect(debug=True)
                 is_connected = False
+                previous_temp = 0
+                previous_humi = 0
+                previous_ldr = 0
                 led.value(0)
             # elif connecte and button pressed: 
                 # disconnect
@@ -191,3 +203,5 @@ Main
 
 main(debug=True)
 
+if __name__ == "__main__":
+    main()
