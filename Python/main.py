@@ -1,129 +1,220 @@
-# main.py -- put your code here!
+'''
+##################################################################################
+##################################################################################
+
+Import section
+
+##################################################################################
+##################################################################################
+'''
 
 import dht                 # import the builtin library
-from machine import ADC, Pin, PWM    # library for pin access      
-import time      
-from LoRaWAN import lora
-from secrets import lorawan_credentials
+from machine import ADC, Pin, unique_id    # library for pin access      
+from time import sleep, sleep_ms
+from my_secrets import adafruit_credentials, adafruit_mqtt_feeds
 import WIFI
-DEBUG = False
+from mqtt import MQTTClient, MQTTException
+from ubinascii import hexlify
+from sys import exit
+import gc
+'''
+##################################################################################
+##################################################################################
 
-'''
-Wifi connection
-'''
-wifi = WIFI.WIFI()
+Global Variables and Objects
 
+##################################################################################
+##################################################################################
 '''
-LoRaWAN Connection
-'''
-lora = lora(debug=DEBUG) # Declare and assign lora object. Change DEBUG on line 9 for activating
 
-# Credentials for LoRaWAN -> in secrets.py that is not pushed to avoid exposing credentials
-DEV_EUI = lorawan_credentials['DEV_EUI']
-APP_EUI = lorawan_credentials['APP_EUI']
-APP_KEY = lorawan_credentials['APP_KEY']
+DELAY = 10 # delay in s
+
+BLINK_DELAY = 500 # in ms
+# Adafruit IO (AIO) configuration
+AIO_SERVER = "io.adafruit.com"
+AIO_PORT = 1883
+AIO_USER = adafruit_credentials['username']
+AIO_KEY = adafruit_credentials['key']
+AIO_CLIENT_ID = hexlify(unique_id())  # Can be anything
+
+# Retrieve credentials from my_secrets.py -> not pushed to avoid exposing credentials
+AIO_AMBIENT_TEMP_FEED = adafruit_mqtt_feeds['ambient_temperature']
+AIO_BUILTIN_LED_FEED = adafruit_mqtt_feeds['built_in_led']
+AIO_AMBIENT_HUMI_FEED = adafruit_mqtt_feeds['ambient_humidity']
+AIO_AMBIENT_LIGHT = adafruit_mqtt_feeds['ambient_light']
 
 '''
 Sensor section
 '''
 # Digital
-passivePiezzo = PWM(Pin(20))             # Passive Piezzo is connected on digital pin 20 in out mode to produce sound
-collision_sensor = Pin(21, Pin.IN)  # Vibration sensor connected to digital pin 21
-
+button = Pin(22,Pin.IN)             # Button to control connection on digital pin 20
 # Analog
 ldr_sensor = ADC(Pin(26))           # LDR sensor connected to analog pin 26 for light detection
-tempSensor = dht.DHT11(Pin(27))     # DHT11 Constructor connected to pin analog 27
+dht11_sensor = dht.DHT11(Pin(27))     # DHT11 Constructor connected to pin analog 27
 
 # Built in
 led = Pin("LED", Pin.OUT)           # Built in LED
 
-# definition of the notes for the buzzer:
-tone = 500 # this will be the frequency on the frequency scale defined for the piezo 
+def blink(delay: int): 
+    led.value(1)
+    sleep_ms(delay)
+    led.value(0)
+    sleep_ms(delay)
+    
+blink(delay=BLINK_DELAY)
 
-# Avoid while true. This can be later changed with a button for instance. 
-is_active = True
+# Connector objects
+wifi = WIFI.WIFI(debug=True)
+mqtt_client = MQTTClient(client_id=AIO_CLIENT_ID, server=AIO_SERVER, port=AIO_PORT, user=AIO_USER, password=AIO_KEY)
 
-def play_alarm():
-        passivePiezzo.duty_u16(1000)  # Setup the max frequency to 1000 
-        passivePiezzo.freq(tone)
+blink(delay=BLINK_DELAY)
+'''
+##################################################################################
+##################################################################################
+
+Function Definition
+
+##################################################################################
+##################################################################################
+'''
+def sub_cb(topic, msg):
+    print(topic, msg)
 
 
-def stop_alarm():
-    passivePiezzo.duty_u16(0) # Setup the max frequency to 0 to turn it off 
-
-
-def connect_LoRaWAN():
+def connect(debug: bool = False) -> None:
     '''
-    Attemps to connect to LoRaWAN network
+    Method to connect wifi then to adafruit mqtt
+    @param: debug: set to true to print extra information useful for debuging
     '''
-    # Limit of while loop before continuing if connection unsuccessful 
-    ATTEMPT_LIMIT = 1
-    LORA_ATTEMPT = 0
-    # LoRaWAN connection
-    try:
-        # config using credentials
-        lora.configure(DEV_EUI, APP_EUI, APP_KEY)
+    wifi.do_connect()    # connect to wifi
+    mqtt_client.set_callback(sub_cb)
+    mqtt_client.connect()           # connect to mqtt
+    mqtt_client.publish(topic="paralex/feeds/last-will", msg="0") # publish a connection status to the adafruit interface
+    if debug:
+        print("Connected to %s" % (AIO_SERVER)) #print info if debug is set
 
-        lora.startJoin()
-        print("Start Join LoRaWAN network.....")
-        # Tries to connect until limit of attempt is reached
-        while not lora.checkJoinStatus() and (LORA_ATTEMPT < ATTEMPT_LIMIT):
-            print("Joining LoRaWAN network....")
-            LORA_ATTEMPT = LORA_ATTEMPT + 1
-        time.sleep(1)
-        # Prints appropriate message, based on the reason the previsou loops has been exited
-        if lora.checkJoinStatus():
-            print("Join success!") 
-        else: 
-            print("Could not connect to LoRaWAN network.")        # library for making delays between reading
-    except Exception as e:
-        print(str(e))
+def disconnect(debug:bool = False) -> None:
+    '''
+    Method to disconnect mqtt then wifi
+    @param: debug: set to true to print extra information useful for debuging
+    '''
+    mqtt_client.publish(topic="paralex/feeds/last-will", msg="1") # publish a disconnection message to ada interface
+    sleep(DELAY)
+    mqtt_client.disconnect()                                       # disconnect first the mqtt client
+    wifi.disconnect()                                               # then the wifi
+    if debug:
+        print("Disconnected from WIFI and MQTT.")                   # debug info
+    
 
-'''
-Try the different connections. First tries to connect to LoRaWAN network and if unsuccessful, tries the WIFI
-'''
-try:
-    connect_LoRaWAN()
-    if not lora.checkJoinStatus():
-        ip = wifi.do_connect()
-        wifi.http_get()
-except KeyboardInterrupt:
-    print("Keyboard interrupt")
-except Exception as e:
-    print(str(e))
-
-'''
-Actual sensor measurement section
-'''
-while is_active:
-    try:
-        # DHT11 measurement and reaction
-        tempSensor.measure()
-        temperature = tempSensor.temperature()
-        humidity = tempSensor.humidity()
-        print("Temperature is {} degrees Celsius and Humidity is {}%".format(temperature, humidity))
-        
-        # LDR sensor measurement and reaction
-        ldr_reading = ldr_sensor.read_u16()
-        darkness = round(ldr_reading / 65535 * 100, 2)
-        print("ldr_reading: {}".format(ldr_reading))
-
-        # vibration sensor measurement
-        collision_reading = collision_sensor.value()
-        print("collision detected: {}".format(not bool(collision_reading)))
-
-        # Produce sound if vibration detected
-        if not collision_reading:
-            led.value(1)
-            play_alarm()
-        else: 
-            led.value(0)
-            stop_alarm()
-
-
+def read_sensors(debug: bool = False) -> int:
+    '''
+    Method to read the current sensor values
+    @param: debug: set to true to print extra information useful for debuging
+    @return: humidity, temperature and ligh readings from sensors as int values
+    '''
+    # DHT11 measurements
+    dht11_sensor.measure()
+    current_temperature = dht11_sensor.temperature()
+    current_humidity = dht11_sensor.humidity()
+    
+    # LDR sensor measurement
+    current_ldr_reading = ldr_sensor.read_u16()
+    
+    # Print the values if DEBUG set to TRUE
+    if debug:
+        print("Amount of light: {}".format(current_ldr_reading))
+        print("Temperature is {} degrees Celsius and Humidity is {}%".format(current_temperature, current_humidity))
         print("###################################")
+    return current_humidity, current_temperature, current_ldr_reading
 
-    except Exception as e:
-        # Print all exception messages
-        print(str(e))
-    time.sleep_ms(10)
+
+def are_equal_readings(previous: int, current: int) -> bool:
+    '''
+    compare two sensore readings 
+    @params: two sensor readings as int
+    @return: True if equal, False if non equal
+    '''
+    return previous == current
+
+
+'''
+Main function.
+Check button status and connection status and connect disconnect accordingly. 
+Reads the sensors values and send the, via mqtt if connection
+'''
+
+def main(debug:bool = False):
+    debug = debug
+    is_connected = False # When booting, the connection has not happened yet
+    previous_temp = 0
+    previous_humi = 0
+    previous_ldr = 0
+    previous_button_status = 0 # initiliase the button status since it is a switch, we need to keep in memory the previous status for comparison
+    while True:
+        try:
+            # Check if the button is pressed
+            button_is_pressed = button.value() # returns 1 when pressed
+            
+            if previous_button_status != button_is_pressed: # update the button status if it is different than the previous one
+                print("Button status set to: ", bool(button_is_pressed))
+                previous_button_status = button_is_pressed
+
+
+            # Connects if the connection status is false and the button has been pressed
+            if not is_connected and previous_button_status:
+                connect(debug=True)
+                is_connected = True
+                led.value(1)
+            # Disconnects if the 
+            elif is_connected and previous_button_status:
+                disconnect(debug=True)
+                is_connected = False
+                previous_temp = 0
+                previous_humi = 0
+                previous_ldr = 0
+                led.value(0)
+            # elif connecte and button pressed: 
+                # disconnect
+            elif is_connected:   # if connection is active 
+                # read values and publish them if they are different than the previous one. 
+                current_humidity, current_temperature, current_ldr_reading = read_sensors(debug=True)
+
+                if not are_equal_readings(previous_humi, current_humidity):
+                    previous_humi = current_humidity
+
+                    mqtt_client.publish(topic=AIO_AMBIENT_HUMI_FEED,msg=str(previous_humi))
+                if not are_equal_readings(previous_temp, current_temperature):
+                    previous_temp = current_temperature
+                    mqtt_client.publish(topic=AIO_AMBIENT_TEMP_FEED,msg=str(previous_temp))
+                if not are_equal_readings(previous_ldr, current_ldr_reading):
+                    previous_ldr = current_ldr_reading
+                    mqtt_client.publish(topic=AIO_AMBIENT_LIGHT,msg=str(previous_ldr))
+                    # TODO: add publication when feed created
+            else:
+                print("Press the button to initialise connection")
+                # add a small delay to smoothen the loop
+            gc.collect() # call garbage collector to free memory after each iteration and avoid memory leak.
+            if debug:
+                print("Available memory: ", gc.mem_free())
+            sleep(DELAY)   
+        except MQTTException as me:
+                print("Not connected to MQTT. Something went wrong") # print exception messages
+                exit(1)
+        except Exception as e:
+                print(str(e)) # print exception messages
+                exit(1)
+       
+'''     
+##################################################################################
+##################################################################################
+
+Main
+
+##################################################################################
+##################################################################################
+'''
+
+main(debug=False)
+
+if __name__ == "__main__":
+    main()

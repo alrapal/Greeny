@@ -1,33 +1,39 @@
 import network
 from time import sleep
-from secrets import secrets  # secrets is not pushed to avoid having WIFI access on github
+from my_secrets import secrets  # secrets is not pushed to avoid having WIFI access on github
 
 class WIFI():
 
     wlan: network.WLAN
-
-    def __init__(self) -> None:
+    debug: bool
+    ip: str
+    def __init__(self, debug: bool = False) -> None:
         self.wlan = network.WLAN(network.STA_IF)  
+        self.debug = debug
+        self.ip = ""
 
     def is_connected(self) -> bool:
        return self.wlan.isconnected()
 
     def do_connect(self):
-        if not self.is_connected():                  # Check if already connected
-            print('connecting to network...')
+        if not self.is_connected():                       # Check if already connected
+            if self.debug:
+                print('connecting to network...')
             self.wlan.active(True)                       # Activate network interface
             # set power mode to get WiFi power-saving off (if needed)
             self.wlan.config(pm = 0xa11140)
             self.wlan.connect(secrets["ssid"], secrets["password"])  # Your WiFi Credential
-            print('Waiting for connection...', end='')
+            if self.debug:
+                print('Waiting for connection...', end='')
             # Check if it is connected otherwise wait
             while not self.is_connected() and self.wlan.status() >= 0:
                 print('.', end='')
                 sleep(1)
         # Print the IP assigned by router
-        ip = self.wlan.ifconfig()[0]
-        print('\nConnected on {}'.format(ip))
-        return ip 
+        self.ip = self.wlan.ifconfig()[0]
+        if self.debug:
+            print('\nConnected on {}'.format(self.ip))
+        return self.ip 
 
 
     def http_get(self, url = 'http://detectportal.firefox.com/'):
@@ -44,3 +50,10 @@ class WIFI():
         print(rec_bytes)                        # Print the response
         s.close()                               # Close connection
 
+    def disconnect(self) -> None: 
+        self.wlan.disconnect()
+        if self.debug:
+            print("Disconnecting from {}".format(self.ip))
+
+    def get_ip(self) -> str:
+        return self.ip
