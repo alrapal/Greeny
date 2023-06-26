@@ -10,11 +10,11 @@ Import section
 
 import dht                 # import the builtin library
 from machine import ADC, Pin, unique_id    # library for pin access      
-from time import sleep    
+from time import sleep, sleep_ms
 from my_secrets import adafruit_credentials, adafruit_mqtt_feeds
 import WIFI
-from mqtt import MQTTClient
-import ubinascii
+from mqtt import MQTTClient, MQTTException
+from ubinascii import hexlify
 from sys import exit
 import gc
 '''
@@ -27,17 +27,21 @@ Global Variables and Objects
 ##################################################################################
 '''
 
-DELAY = 2 # delay in ms
+DELAY = 10 # delay in s
 
+BLINK_DELAY = 500 # in ms
 # Adafruit IO (AIO) configuration
 AIO_SERVER = "io.adafruit.com"
 AIO_PORT = 1883
 AIO_USER = adafruit_credentials['username']
 AIO_KEY = adafruit_credentials['key']
-AIO_CLIENT_ID = ubinascii.hexlify(unique_id())  # Can be anything
+AIO_CLIENT_ID = hexlify(unique_id())  # Can be anything
+
+# Retrieve credentials from my_secrets.py -> not pushed to avoid exposing credentials
 AIO_AMBIENT_TEMP_FEED = adafruit_mqtt_feeds['ambient_temperature']
 AIO_BUILTIN_LED_FEED = adafruit_mqtt_feeds['built_in_led']
 AIO_AMBIENT_HUMI_FEED = adafruit_mqtt_feeds['ambient_humidity']
+AIO_AMBIENT_LIGHT = adafruit_mqtt_feeds['ambient_light']
 
 '''
 Sensor section
@@ -51,19 +55,19 @@ dht11_sensor = dht.DHT11(Pin(27))     # DHT11 Constructor connected to pin analo
 # Built in
 led = Pin("LED", Pin.OUT)           # Built in LED
 
-def blink(): 
+def blink(delay: int): 
     led.value(1)
-    sleep(1)
+    sleep_ms(delay)
     led.value(0)
-    sleep(1)
+    sleep_ms(delay)
     
-blink()
+blink(delay=BLINK_DELAY)
 
 # Connector objects
 wifi = WIFI.WIFI(debug=True)
-mqtt_client = MQTTClient(AIO_CLIENT_ID, AIO_SERVER, AIO_PORT, AIO_USER, AIO_KEY)
+mqtt_client = MQTTClient(client_id=AIO_CLIENT_ID, server=AIO_SERVER, port=AIO_PORT, user=AIO_USER, password=AIO_KEY)
 
-blink()
+blink(delay=BLINK_DELAY)
 '''
 ##################################################################################
 ##################################################################################
@@ -73,12 +77,17 @@ Function Definition
 ##################################################################################
 ##################################################################################
 '''
+def sub_cb(topic, msg):
+    print(topic, msg)
+
+
 def connect(debug: bool = False) -> None:
     '''
     Method to connect wifi then to adafruit mqtt
     @param: debug: set to true to print extra information useful for debuging
     '''
     wifi.do_connect()    # connect to wifi
+    mqtt_client.set_callback(sub_cb)
     mqtt_client.connect()           # connect to mqtt
     mqtt_client.publish(topic="paralex/feeds/last-will", msg="0") # publish a connection status to the adafruit interface
     if debug:
@@ -179,6 +188,7 @@ def main(debug:bool = False):
                     mqtt_client.publish(topic=AIO_AMBIENT_TEMP_FEED,msg=str(previous_temp))
                 if not are_equal_readings(previous_ldr, current_ldr_reading):
                     previous_ldr = current_ldr_reading
+                    mqtt_client.publish(topic=AIO_AMBIENT_LIGHT,msg=str(previous_ldr))
                     # TODO: add publication when feed created
             else:
                 print("Press the button to initialise connection")
@@ -186,7 +196,10 @@ def main(debug:bool = False):
             gc.collect() # call garbage collector to free memory after each iteration and avoid memory leak.
             if debug:
                 print("Available memory: ", gc.mem_free())
-            sleep(DELAY)     
+            sleep(DELAY)   
+        except MQTTException as me:
+                print("Not connected to MQTT. Something went wrong") # print exception messages
+                exit(1)
         except Exception as e:
                 print(str(e)) # print exception messages
                 exit(1)
@@ -201,7 +214,7 @@ Main
 ##################################################################################
 '''
 
-main(debug=True)
+main(debug=False)
 
 if __name__ == "__main__":
     main()

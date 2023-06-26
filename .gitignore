@@ -160,6 +160,6 @@ cython_debug/
 #.idea/
 
 
-secrets.py
+my_secrets.py
 
 *.DS_Store

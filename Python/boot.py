@@ -1,1 +1,2 @@
-pass
+import gc
+gc.collect()

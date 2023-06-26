@@ -1,6 +1,6 @@
 import network
 from time import sleep
-from secrets import secrets  # secrets is not pushed to avoid having WIFI access on github
+from my_secrets import secrets  # secrets is not pushed to avoid having WIFI access on github
 
 class WIFI():
 
