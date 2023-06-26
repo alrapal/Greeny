@@ -1,0 +1,32 @@
+name: Micropython CI
+# Workflow happen on push if changed have been detected in the Python folder
+# and for all PR to main
+on:
+  push:
+    branches:
+      - '*'
+    paths:
+      - 'Python/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    # clone and build micropython
+    - name: Install Micropython
+      run: |
+        git clone https://github.com/micropython/micropython.git
+        cd ${{ github.workspace }}/micropython/mpy-cross
+        make
+        chmod +x ./build/mpy-cross
+    # use micro python to build the main.py file -> only checks for syntax, libraries are not checked. TODO: Should configure pylint for micropython later
+    - name: Build Micropython program
+      run: |
+        cd ${{ github.workspace }}/Python # Path to micropython project
+        ../micropython/mpy-cross/build/mpy-cross -march=xtensawin main.py # relative path + .py file to build 

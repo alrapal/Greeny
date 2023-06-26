@@ -163,3 +163,6 @@ cython_debug/
 secrets.py
 .vscode/
 *.DS_Store
+
+# Build micropython files 
+*.mpy
