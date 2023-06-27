@@ -8,15 +8,18 @@ Import section
 ##################################################################################
 '''
 
-import dht                 # import the builtin library
-from machine import ADC, Pin, unique_id    # library for pin access      
-from time import sleep, sleep_ms
-from my_secrets import adafruit_credentials, adafruit_mqtt_feeds
-import WIFI
-from mqtt import MQTTClient, MQTTException
-from ubinascii import hexlify
-from sys import exit
-import gc
+import dht                # DHT library provided by micropython
+import gc                 # garbage collector for memory management
+import WIFI               # wifi module
+import custom_exceptions as ce  # custom exceptions for error handling
+
+from mqtt import MQTTClient, MQTTException  # mqtt module and its exceptions
+from ubinascii import hexlify               
+from sys import exit                        # method to exit the program
+from analog_sensor import AnalogSensor      # Analog sensor module which provides an extra abstraction layer and more control over the analog sensors
+from machine import Pin, unique_id          # micropython library for pin access      
+from time import sleep, sleep_ms            # time functions
+from my_secrets import adafruit_credentials, adafruit_mqtt_feeds    # secret file with credentials
 '''
 ##################################################################################
 ##################################################################################
@@ -26,10 +29,15 @@ Global Variables and Objects
 ##################################################################################
 ##################################################################################
 '''
+# delays
+DELAY = 2 # delay in s between each readings
+BLINK_DELAY = 500 # in ms define the blink delay 
 
-DELAY = 10 # delay in s
+# pins
+PIN_BUTTON = 22
+PIN_LIGHT = 26
+PIN_DHT = 27
 
-BLINK_DELAY = 500 # in ms
 # Adafruit IO (AIO) configuration
 AIO_SERVER = "io.adafruit.com"
 AIO_PORT = 1883
@@ -44,30 +52,41 @@ AIO_AMBIENT_HUMI_FEED = adafruit_mqtt_feeds['ambient_humidity']
 AIO_AMBIENT_LIGHT = adafruit_mqtt_feeds['ambient_light']
 
 '''
-Sensor section
+##################################################################################
+##################################################################################
+
+Sensor connection
+
+##################################################################################
+##################################################################################
 '''
-# Digital
-button = Pin(22,Pin.IN)             # Button to control connection on digital pin 20
-# Analog
-ldr_sensor = ADC(Pin(26))           # LDR sensor connected to analog pin 26 for light detection
-dht11_sensor = dht.DHT11(Pin(27))     # DHT11 Constructor connected to pin analog 27
 
-# Built in
-led = Pin("LED", Pin.OUT)           # Built in LED
 
-def blink(delay: int): 
-    led.value(1)
-    sleep_ms(delay)
-    led.value(0)
-    sleep_ms(delay)
-    
-blink(delay=BLINK_DELAY)
+try:
+    button = Pin(PIN_BUTTON,Pin.IN)             # Button to control connection on digital pin 20
+    light_sensor = AnalogSensor(pin=PIN_LIGHT,name="Ambient Light Sensor") # light sensor connected on pin 26
+    #dht11 sensor for temp and humidity     
+    dht11_sensor = dht.DHT11(Pin(PIN_DHT))     # DHT11 Constructor connected to pin analog 27
+    # Built in 
+    led = Pin("LED", Pin.OUT)           # Built in LED
 
-# Connector objects
-wifi = WIFI.WIFI(debug=True)
-mqtt_client = MQTTClient(client_id=AIO_CLIENT_ID, server=AIO_SERVER, port=AIO_PORT, user=AIO_USER, password=AIO_KEY)
+    # Connector objects
+    # TODO: Move into boot.py
+    wifi = WIFI.WIFI(debug=True)
+    mqtt_client = MQTTClient(client_id=AIO_CLIENT_ID, server=AIO_SERVER, port=AIO_PORT, user=AIO_USER, password=AIO_KEY)
+except ce.InvalidSensorNameException as ne: # exception if invalid sensor name
+    print(ne.message)
+    exit(1)
+except ce.InvalidPinException as pe: # exception if invalid analog pin for Pico W. 
+    print(pe.message)
+    exit(1)
+except Exception as e:
+    print(str(e))
+    exit(1)
 
-blink(delay=BLINK_DELAY)
+
+
+
 '''
 ##################################################################################
 ##################################################################################
@@ -77,6 +96,13 @@ Function Definition
 ##################################################################################
 ##################################################################################
 '''
+
+def blink(delay: int): 
+    led.value(1)
+    sleep_ms(delay)
+    led.value(0)
+    sleep_ms(delay)
+
 def sub_cb(topic, msg):
     print(topic, msg)
 
@@ -118,13 +144,18 @@ def read_sensors(debug: bool = False) -> int:
     current_humidity = dht11_sensor.humidity()
     
     # LDR sensor measurement
-    current_ldr_reading = ldr_sensor.read_u16()
-    
+    try:
+        current_ldr_reading = light_sensor.get_raw_data()
+        # _per_current_ldr_reading = light_sensor.calculate_percentage_data(current_ldr_reading)
+        if debug:
+            print("Amount of light: {}".format(current_ldr_reading))
+            # print("Amount of light %: {}%".format(_per_current_ldr_reading))
+            print("Temperature is {} degrees Celsius and Humidity is {}%".format(current_temperature, current_humidity))
+            print("###################################")
+    except ce.InvalidMinMaxException as me:
+        print(me.message)
     # Print the values if DEBUG set to TRUE
-    if debug:
-        print("Amount of light: {}".format(current_ldr_reading))
-        print("Temperature is {} degrees Celsius and Humidity is {}%".format(current_temperature, current_humidity))
-        print("###################################")
+
     return current_humidity, current_temperature, current_ldr_reading
 
 
@@ -197,7 +228,7 @@ def main(debug:bool = False):
             if debug:
                 print("Available memory: ", gc.mem_free())
             sleep(DELAY)   
-        except MQTTException as me:
+        except MQTTException:
                 print("Not connected to MQTT. Something went wrong") # print exception messages
                 exit(1)
         except Exception as e:
