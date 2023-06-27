@@ -1,6 +1,6 @@
-# sleeptight
+# Greeny
 
-Tutorial on how to assemble and build an IoT device to monitor your sleep and your sleeping environment. 
+Tutorial on how to assemble and build an IoT device to monitor a plant's soil as well as ambient temperature and lighting conditions. 
 This tutorial is part of the Applied IoT course given by Linnaeus University durnig summer 2023.
 
 ## Author and credentials
@@ -8,29 +8,42 @@ Name: Alexandre Rancati-Palmer
 Student credentials: ar224hw
 
 ## Description
-This projects aims to provide insights to the user on their sleep quality. 
-It uses a combination of sensor such as 
-<TODO: ADD THE SENSOR LIST WHEN DEFINED>
+This projects aims to provide a tool to monitor a plant's soil and environmental conditions. 
+The sensors used in this project are the following: 
+|Sensor name|Purpose|User guide|
+|---|---|---|
+|DHT11|Provide data on the ambient temperature and himidity||
+|Capacitive soil sensor|Provide data on the humidity in the soil||
+|Photo resistor|Provide data on the lighting conditions||
 
+More information about the sensors available [here](#material)
 ## Estimated time: 
 <TODO: ADD ESTIMATED TIME>
 
 # Objective
-
-Describe why you have chosen to build this specific device. What purpose does it serve? What do you want to do with the data, and what new insights do you think it will give?
-
-- [ ] Why you chose the project
-- [ ] What purpose does it serve
-- [ ] What insights you think it will give
+I am not extaclty the best gardener and I always struggle to water my plants at good time. As a responsible plant owner, I had to be better and IoT can help me reaching my goal. Beside giving me direct indication on when my plants need to be watered, I plan to use the combination of data from the environment and the soil to help me undertsand how my plants react to these different factors. When do they drink the most, in which conditions. This is more of a long term goal but with time, I hope to collect enough data to be able to map a unique hydrolic behaviour for each plant. 
 
 # Material
 
-Explain all material that is needed. All sensors, where you bought them and their specifications. Please also provide pictures of what you have bought and what you are using.
+|Material|Purpose|Price|Purchase|User guide|Specification|
+|---|---|---|---|---|---|
+|Raspberry pico W| Micro controller with wifi chip|98 kr|[Electrokit](https://www.electrokit.com/produkt/raspberry-pi-pico-w/)|[Raspberry website](https://www.raspberrypi.com/documentation/microcontrollers/raspberry-pi-pico.html)|Wireless (WiFi and Bluetooth), 256kb RAM, ARM architecture, RP2040 CPU, 2Mb flash memory|
+|Breadboard|For cleaner wiring|69 kr|[Electrokit](https://www.electrokit.com/produkt/kopplingsdack-840-anslutningar/)| - | - |
+|Jumper cables MM|For wiring|29 kr|[Electrokit](https://www.electrokit.com/en/product/jumper-wires-1-pin-male-male-150mm-10-pack/)|-|-|
+|Jumper cables MF|For wiring|29 kr|[Electrokit](https://www.electrokit.com/en/product/jumper-wires-1-pin-female-female-150mm-10-pack/)|-|-|
+|USB to micro usb cable|Connecting micro controller to computer|19 kr|[Electrokit](https://www.electrokit.com/en/product/usb-cable-a-male-micro-b-male-30cm/)|-|-|
+|DHT11|Temperature and humidity sensor|49 kr|[Electrokit](https://www.electrokit.com/en/product/digital-temperature-and-humidity-sensor-dht11/)|[PDF](https://www.electrokit.com/uploads/productfile/41015/41015728_-_Digital_Temperature_Humidity_Sensor.pdf)|Analog, 3.3V to 5.5V, Humidity range 20% to 90% RH with +-5% RH error. Temperature range 0°C to 50°C with +-2° error|
+Capacitive Soil Sensor|Soil humidity sensor|67.99 kr|[Amazon](https://www.amazon.se/-/en/dp/B07V6M5C4H?psc=1&ref=ppx_yo2ov_dt_b_product_details)|-|Analog, 3.3V to 5.5V <TODO: Add specs>|
+|Light sensor|Resistor reacting to lighting conditions|39 kr|[Electrokit](https://www.electrokit.com/produkt/ljussensor/)|[PDF](https://www.electrokit.com/uploads/productfile/41015/41015727_-_Photoresistor_Module.pdf)|Analog, 3.3V to 5.5V, built-in 10Koms resistor|
+|Push button|Button for calibration of sensors|5.50 kr|[Electrokit](https://www.electrokit.com/en/product/push-button-pcb-3mm-black/)|-|-|
+|1kohm resistor|Resistance to use with button|1 kr|[Electrokit](https://www.electrokit.com/en/product/resistor-carbon-film-0-25w-1kohm-1k/)|-|1Koms resistance
 
-- [ ] What insights you think it will give
-- [ ] List of material
-- [ ] What the different things (sensors, wires, controllers) do - short specifications
-- [ ] Where you bought them and how much they cost
+
+**Total price: 406.49 kr**
+
+![picture](./Assets/material.jpg)
+
+<TODO: Update with latest picture>
 
 # Computer setup
 
@@ -41,11 +54,26 @@ How is the device programmed. Which IDE are you using. Describe all steps from f
 - [ ] Steps that you needed to do for your computer. Installation of Node.js, extra drivers, etc.
 
 # Putting everything together
+The picture below shows how the different sensors should be wired. 
 
-How is all the electronics connected? Describe all the wiring, good if you can show a circuit diagram. Be specific on how to connect everything, and what to think of in terms of resistors, current and voltage. Is this only for a development setup or could it be used in production?
+![picture](./Assets/greeny_wiring_bb.jpg)
 
-- [ ] Circuit diagram (can be hand drawn)
-- [ ] *Electrical calculations <HIGHER GRADE>
+- The Pico W powers the breadboard via 3v3 pin (pin 37) 
+- The Pico connects the breadboard to ground via pin 38
+- All sensors are then powered via the breadboard power and ground lines
+- The button has a resistor connected to the ground because it is not included in unlike the other sensors. This is to avoide picking up electrical noise when not pressed. 
+- Since all sensors are compatible with 5V, it is possible to use pin 40 (VSYS) to power the bredboard instead of the 3v3. This is recommended only if you plan on using the usb connector as power source since the VSYS is directly coming from the usb. It will not work if the usb is not used. This can have the benefit to provide better readings, especially for the soil sensor which, depending on the one you purchased, can provide low quality readings. 
+- For data reading, all sensors are analog. This means that we use Pin 34, 32 and 31 to read the analog inputs. In the provided circuit diagram, the sensors are connected as the following: 
+   
+|Sensor|Pin|Pin Name|
+|---|---|---|
+|DHT11|`32`|`ADC1`|
+|Light sensor|`31`|`ADC0`|
+|Soil sensor|`34`|`ADC2`|
+
+- The button can be connected to any GPIO pin since it is used to detect digital signal. In this case, it was connected to `pin 29` / `GP 22`
+  
+  This setup is not suitable for production since it is using a bread board and the connections are not soldered. Also, it is sensitive to voltage depending on the quality of the sensor, requiring to use the USB for powering the device.  
 
 # Platform
 
