@@ -30,13 +30,14 @@ Global Variables and Objects
 ##################################################################################
 '''
 # delays
-DELAY = 2 # delay in s between each readings
+DELAY = 10 # delay in s between each readings
 BLINK_DELAY = 500 # in ms define the blink delay 
 
 # pins
 PIN_BUTTON = 22
 PIN_LIGHT = 26
 PIN_DHT = 27
+PIN_SOIL = 28
 
 # Adafruit IO (AIO) configuration
 AIO_SERVER = "io.adafruit.com"
@@ -50,7 +51,11 @@ AIO_AMBIENT_TEMP_FEED = adafruit_mqtt_feeds['ambient_temperature']
 AIO_BUILTIN_LED_FEED = adafruit_mqtt_feeds['built_in_led']
 AIO_AMBIENT_HUMI_FEED = adafruit_mqtt_feeds['ambient_humidity']
 AIO_AMBIENT_LIGHT = adafruit_mqtt_feeds['ambient_light']
+AIO_SOIL_MOISTURE_FEED = adafruit_mqtt_feeds['soil_moisture']
 
+# Boundaries for Analog sensors:
+MAX_SOIL = 43500 # Correspond to the reading obtained when sensor in the air and dry
+MIN_SOIL = 13000 # Corresponds to the reading obtained when sensor was emegred in water. 
 '''
 ##################################################################################
 ##################################################################################
@@ -65,6 +70,11 @@ Sensor connection
 try:
     button = Pin(PIN_BUTTON,Pin.IN)             # Button to control connection on digital pin 20
     light_sensor = AnalogSensor(pin=PIN_LIGHT,name="Ambient Light Sensor") # light sensor connected on pin 26
+    
+    soil_sensor = AnalogSensor(pin=PIN_SOIL, name="Soil Moisture Sensor") # Soil moisture sensor connected on pin 28
+    # Set the min and max value to be able to retrieve a % of soil humidity
+    soil_sensor.min = MIN_SOIL
+    soil_sensor.max = MAX_SOIL
     #dht11 sensor for temp and humidity     
     dht11_sensor = dht.DHT11(Pin(PIN_DHT))     # DHT11 Constructor connected to pin analog 27
     # Built in 
@@ -146,9 +156,11 @@ def read_sensors(debug: bool = False) -> int:
     # LDR sensor measurement
     try:
         current_ldr_reading = light_sensor.get_raw_data()
+        current_soil_reading = soil_sensor.get_percentage_data()
         # _per_current_ldr_reading = light_sensor.calculate_percentage_data(current_ldr_reading)
         if debug:
             print("Amount of light: {}".format(current_ldr_reading))
+            print("Soil dryness {}%".format(current_soil_reading))
             # print("Amount of light %: {}%".format(_per_current_ldr_reading))
             print("Temperature is {} degrees Celsius and Humidity is {}%".format(current_temperature, current_humidity))
             print("###################################")
@@ -156,7 +168,7 @@ def read_sensors(debug: bool = False) -> int:
         print(me.message)
     # Print the values if DEBUG set to TRUE
 
-    return current_humidity, current_temperature, current_ldr_reading
+    return current_humidity, current_temperature, current_ldr_reading, current_soil_reading
 
 
 def are_equal_readings(previous: int, current: int) -> bool:
@@ -180,6 +192,7 @@ def main(debug:bool = False):
     previous_temp = 0
     previous_humi = 0
     previous_ldr = 0
+    previous_soil = 0
     previous_button_status = 0 # initiliase the button status since it is a switch, we need to keep in memory the previous status for comparison
     while True:
         try:
@@ -203,13 +216,17 @@ def main(debug:bool = False):
                 previous_temp = 0
                 previous_humi = 0
                 previous_ldr = 0
+                previous_soil = 0
                 led.value(0)
             # elif connecte and button pressed: 
                 # disconnect
             elif is_connected:   # if connection is active 
                 # read values and publish them if they are different than the previous one. 
-                current_humidity, current_temperature, current_ldr_reading = read_sensors(debug=True)
-
+                current_humidity, current_temperature, current_ldr_reading, current_soil_reading = read_sensors(debug=True)
+                
+                if not are_equal_readings(previous_soil, current_soil_reading):
+                    previous_soil = current_soil_reading
+                    mqtt_client.publish(topic=AIO_SOIL_MOISTURE_FEED, msg=str(previous_soil))
                 if not are_equal_readings(previous_humi, current_humidity):
                     previous_humi = current_humidity
 
