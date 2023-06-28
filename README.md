@@ -52,7 +52,7 @@ I am not extaclty the best gardener and I always struggle to water my plants at 
 |Jumper cables MF|For wiring|29 kr|[Electrokit](https://www.electrokit.com/en/product/jumper-wires-1-pin-female-female-150mm-10-pack/)|-|-|
 |USB to micro usb cable|Connecting micro controller to computer|19 kr|[Electrokit](https://www.electrokit.com/en/product/usb-cable-a-male-micro-b-male-30cm/)|-|-|
 |DHT11|Temperature and humidity sensor|49 kr|[Electrokit](https://www.electrokit.com/en/product/digital-temperature-and-humidity-sensor-dht11/)|[PDF](https://www.electrokit.com/uploads/productfile/41015/41015728_-_Digital_Temperature_Humidity_Sensor.pdf)|Analog, 3.3V to 5.5V, Humidity range 20% to 90% RH with +-5% RH error. Temperature range 0°C to 50°C with +-2° error|
-Capacitive Soil Sensor|Soil humidity sensor|67.99 kr|[Amazon](https://www.amazon.se/-/en/dp/B07V6M5C4H?psc=1&ref=ppx_yo2ov_dt_b_product_details)|-|Analog, 3.3V to 5.5V <TODO: Add specs>|
+Capacitive Soil Sensor|Soil humidity sensor|67.99 kr|[AZ-Delivery via Amazon](https://www.amazon.se/-/en/dp/B07V6M5C4H?psc=1&ref=ppx_yo2ov_dt_b_product_details)|[Free ebook](https://www.az-delivery.de/en/products/bodenfeuchte-v1-2-kostenfreies-e-book)|Analog, 3.3V to 5V. (Although the user guide mentions only 5V, 3.3V works)|
 |Light sensor|Resistor reacting to lighting conditions|39 kr|[Electrokit](https://www.electrokit.com/produkt/ljussensor/)|[PDF](https://www.electrokit.com/uploads/productfile/41015/41015727_-_Photoresistor_Module.pdf)|Analog, 3.3V to 5.5V, built-in 10Koms resistor|
 |Push button|Button for calibration of sensors|5.50 kr|[Electrokit](https://www.electrokit.com/en/product/push-button-pcb-3mm-black/)|-|-|
 |1kohm resistor|Resistance to use with button|1 kr|[Electrokit](https://www.electrokit.com/en/product/resistor-carbon-film-0-25w-1kohm-1k/)|-|1Koms resistance
@@ -61,8 +61,6 @@ Capacitive Soil Sensor|Soil humidity sensor|67.99 kr|[Amazon](https://www.amazon
 **Total estimated price: 406.49 kr**
 
 ![picture](./Assets/material.jpg)
-
-<TODO: Update with latest picture>
 
 ## Computer setup
 The workflow I used is on a **Mac** with **ARM architecture (M1)**. 
@@ -121,16 +119,16 @@ The picture below shows how the different components should be wired.
 - The Pico W connects the breadboard to ground via `pin 38`
 - All sensors are then powered via the breadboard power and ground lines
 - The button has a resistor connected to the ground because it is not included in unlike the other sensors. This is to avoide picking up electrical noise when not pressed. 
-- Since all sensors are compatible with 5V, it is possible to use `pin 40` (`VSYS`) to power the bredboard instead of the `3v3`. This is recommended only if you plan on using the usb connector as power source since the VSYS is directly coming from the usb. It will not work if the usb is not used. This can have the benefit to provide better readings, especially for the soil sensor which, depending on the one you purchased, can provide low quality readings. 
-- For data reading, all sensors are analog. This means that we use Pin 34, 32 and 31 to read the analog inputs. In the provided circuit diagram, the sensors are connected as the following: 
+- Since all sensors are compatible with 5V, it is possible to use `pin 40` (`VBUS`) or `pin 39`(VSYS) to power the bredboard instead of the `3v3`. However, in my testings, I found that the Light sensor would provide higher values since higher voltage, but the soil moisture sensor would be constant despite having it alternatively emerged in water an dried in the air. `3.3V` seems to be recommended in this case. Or alternatively, we would need to use some extra resistors to use `VBUS` or `VSYS`. 
+- For data reading, all sensors are analog. This means that we use `Pin 34`, `32` and `31` to read the analog inputs. In the provided circuit diagram, the sensors are connected as the following: 
    
-|Sensor|Pin|Pin Name|
-|---|---|---|
-|DHT11|`32`|`ADC1`|
-|Light sensor|`31`|`ADC0`|
-|Soil sensor|`34`|`ADC2`|
+|Sensor|Pin Controller Number|Pin ADC Name|Pin GPIO name|
+|---|---|---|---|
+|DHT11|`32`|`ADC1`|`GP27`|
+|Light sensor|`31`|`ADC0`|`GP26`|
+|Soil sensor|`34`|`ADC2`|`GP28`|
 
-- The button can be connected to any `GPIO` pin since it is used to detect digital signal. In this case, it was connected to `pin 29` / `GP 22`
+- The button can be connected to any `GPIO` pin since it is used to detect digital signal. In this case, it was connected to `pin 29` / `GP22`
   
 This setup is not suitable for production since it is using a bread board and the connections are not soldered. Also, it is sensitive to voltage depending on the quality of the sensor, requiring to use the USB for powering the device.  Furthermore, the wiring is exposed which can be problematic when wiring the plant. Extra care should be applied in this case, which should be avoided for production standard product. 
 
