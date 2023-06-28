@@ -1,3 +1,5 @@
+# Code from: https://raw.githubusercontent.com/RuiSantosdotme/ESP-MicroPython/master/code/MQTT/umqttsimple.py
+
 try:
     import usocket as socket
 except:
