@@ -24,12 +24,12 @@ class AnalogSensor():
     '''
     @property #allows to access the value using this form: object.pin instead object.pin()
     def pin(self) -> int:
-        pass
+        return self._pin
 
     @pin.setter #allows to set the value using object.pin instead of object.pin()
     def pin(self, value: int):
         # Check if the pin is a valid analog pin for a 
-        if value != 26 or value != 27 or value != 28:
+        if value not in valid_pico_w_analog_pins:
             raise InvalidPinException(message="Invalid Pin provided. The valid analog pins for pico W are 26, 27 or 28")
         self._pin = value
 
@@ -43,20 +43,28 @@ class AnalogSensor():
 
     @max.setter
     def max(self, value: int):
-        if self._min == None:
+        '''
+        Should be used only if min has been set
+        '''
+        if self._min is None:
             raise InvalidMinMaxException(message="Please set the minimum for " + self._name + " first.")
         if value < 0 or value < self._min:
             raise InvalidMinMaxException(message="The maximum boundary for " + self._name + " should be >= 0. and >= to the minimum boundary.")
         self._max = value
     @property
     def min(self) -> int:
-        pass
+        return self._min
 
     @min.setter
     def min(self, value: int):
-        if value < 0 or value > self._max:
-            raise InvalidMinMaxException(message="The minimum boundary for " + self._name + " should be >= 0. and <= to the maximum boundary.")
-        self._max = value
+        # check if the value is <= to 0 -> negatives are not allowed
+        if value < 0:
+            raise InvalidMinMaxException(message="The minimum boundary for " + self._name + " should be >= 0")
+        # Check if the max has been defined and in that case if the value is superior or equal to the max -> there should be a gap between min and max with min < max
+        if self._max is not None and value >= self._max:
+            raise InvalidMinMaxException(message="The minimum boundary for " + self._name + " should be < to the maximum boundary")
+        self._min = value
+        
 
     @property
     def name(self) -> str:
@@ -83,7 +91,7 @@ class AnalogSensor():
         Return the value in percentage based on the _min and the _max for the provided value
         If out of bound, returns max or min. 
         '''
-        if self._max == None or self._min == None:
+        if self._max is None or self._min is None:
             raise InvalidMinMaxException(message="Minimum and / or maximum boundaries are not define for sensor " + self._name)
         
         # clamp the value between _min and _max to ensure it falls within the range
@@ -96,12 +104,12 @@ class AnalogSensor():
         If out of bound, returns closest max or min. 
         '''
 
-        if self._max == None or self._min == None:
+        if self._max is None or self._min is None:
             raise InvalidMinMaxException(message="Minimum and / or maximum boundaries are not define for sensor " + self._name)
         
         # clamp the value between _min and _max to ensure it falls within the range
         value_clamped = max(self._min, min(self._max, self.get_raw_data()))
-        return ((value_clamped - self._min) / (self._max - self._min)) * 100
+        return int(((value_clamped - self._min) / (self._max - self._min)) * 100)
     
     def calibrate_min(self):
         '''
@@ -130,7 +138,7 @@ class AnalogSensor():
             sleep_ms(ms_interval)
         self.max = int(total/iterations) # we use the setter to check for the exceptions
 
-    def to_string(self):
+    def __str__(self):
         '''
         Returns a string about the sensor with key attributes' values
         '''
