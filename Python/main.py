@@ -14,7 +14,7 @@ import custom_exceptions as ce  # custom exceptions for error handling
 
 from boot import blink, mqtt_client
 from analog_sensor import AnalogSensor      # Analog sensor module which provides an extra abstraction layer and more control over the analog sensors
-from machine import Pin, reset, RTC, deepsleep          # micropython library for pin access      
+from machine import Pin, reset, lightsleep         # micropython library for pin access      
 from time import sleep            # time functions
 from my_secrets import mqtt_feeds    # secret file with credentials
 '''
@@ -53,12 +53,7 @@ MIN_LIGHT = 300 # Corresponds to the sensor being in the sun
 MAX_LIGHT = 2000 # Corresponds to the sensor being under a blanket to mimic dark environment
 
 # Alarm object for controlling deepsleep duration 
-<<<<<<< HEAD
-rtc = RTC()
-DELAY = 5000 # delay in ms between each awakening
-=======
-DELAY = 1000 * 3600 # delay in ms between each awakening -> 1000ms * 3600 = 1h
->>>>>>> bb16dcf83ca2427e104c6f9f4dfbd39e548279df
+DELAY = 3600000 # delay in ms between each awakening -> 1000ms * 3600 = 1h
 
 '''
 ##################################################################################
@@ -98,58 +93,50 @@ except Exception as e:
     blink(BLINK_DELAY_UNKNOWN_ERROR)
     reset()
 
+while True:
 
+    try: 
+        
+        dht11_sensor.measure()
+        current_temperature = dht11_sensor.temperature()
+        mqtt_client.publish(topic=MQTT_AMBIENT_TEMP_FEED,msg=str(current_temperature))
+        blink(BLINK_DELAY_SENDING_DATA)
 
-try: 
-    
-    dht11_sensor.measure()
-    current_temperature = dht11_sensor.temperature()
-    mqtt_client.publish(topic=MQTT_AMBIENT_TEMP_FEED,msg=str(current_temperature))
-    blink(BLINK_DELAY_SENDING_DATA)
+        current_humidity = dht11_sensor.humidity()
+        mqtt_client.publish(topic=MQTT_AMBIENT_HUMI_FEED,msg=str(current_humidity))
+        blink(BLINK_DELAY_SENDING_DATA)
 
-    current_humidity = dht11_sensor.humidity()
-    mqtt_client.publish(topic=MQTT_AMBIENT_HUMI_FEED,msg=str(current_humidity))
-    blink(BLINK_DELAY_SENDING_DATA)
+        percentage_darkness = light_sensor.get_percentage_data()
+        # We calculate the complementary percentage because it is more intuitive to think about % of light instead of darkness
+        percentage_light = 100 - percentage_darkness 
+        mqtt_client.publish(topic=MQTT_AMBIENT_LIGHT,msg=str(percentage_light))
+        blink(BLINK_DELAY_SENDING_DATA)
 
-    percentage_darkness = light_sensor.get_percentage_data()
-    # We calculate the complementary percentage because it is more intuitive to think about % of light instead of darkness
-    percentage_light = 100 - percentage_darkness 
-    mqtt_client.publish(topic=MQTT_AMBIENT_LIGHT,msg=str(percentage_light))
-    blink(BLINK_DELAY_SENDING_DATA)
+        percentage_dryness = soil_sensor.get_percentage_data()
+        # We calculate the complementary percentage because it is more intuitive to think about % of humidity instead of dryness
+        percentage_moist = 100 - percentage_dryness 
+        mqtt_client.publish(topic=MQTT_SOIL_MOISTURE_FEED, msg=str(percentage_moist))
+        blink(BLINK_DELAY_SENDING_DATA)
 
-    percentage_dryness = soil_sensor.get_percentage_data()
-    # We calculate the complementary percentage because it is more intuitive to think about % of humidity instead of dryness
-    percentage_moist = 100 - percentage_dryness 
-    mqtt_client.publish(topic=MQTT_SOIL_MOISTURE_FEED, msg=str(percentage_moist))
-    blink(BLINK_DELAY_SENDING_DATA)
+        # Print info into the console
+        print("###################################")
+        print("Available memory: ", gc.mem_free())
+        print("###################################")
+        print("Light (%): {}".format(percentage_light))
+        print("Soil moist (%) {}%".format(percentage_moist))
+        print("Temperature is {} degrees Celsius and Humidity is {}%".format(current_temperature, current_humidity))
+        print("###################################")
+        sleep(1)
+        # Call the garbage collector to clean memory
+        gc.collect()
+        print("Light sleep for {} ms".format(DELAY))
+        sleep(1)
+        lightsleep(DELAY) # goes into deepsleep -> deepsleep reset the device so boot and main will be executed again. This allows us to not use a while loop. 
 
-    # Print info into the console
-    print("###################################")
-    print("Available memory: ", gc.mem_free())
-    print("###################################")
-    print("Light (%): {}".format(percentage_light))
-    print("Soil moist (%) {}%".format(percentage_moist))
-    print("Temperature is {} degrees Celsius and Humidity is {}%".format(current_temperature, current_humidity))
-    print("###################################")
-<<<<<<< HEAD
-
-    # Call the garbage collector to clean memory
-    gc.collect()
-    
-    rtc.alarm(rtc.ALARMO, DELAY) #sets the alarm to walk up from deep sleep
-    deepsleep() # goes into deepsleep -> deepsleep reset the device so boot and main will be executed again. This allows us to not use a while loop. 
-=======
-    sleep(1)
-    # Call the garbage collector to clean memory
-    gc.collect()
-    
-    deepsleep(DELAY) # goes into deepsleep -> deepsleep reset the device so boot and main will be executed again. This allows us to not use a while loop. 
->>>>>>> bb16dcf83ca2427e104c6f9f4dfbd39e548279df
-
-except ce.InvalidMinMaxException as me:
-        print(me.message)
-        blink(BLINK_DELAY_SENSOR_CONF_ERROR)
-        # We do not reset since maybe some data can maybe be sent
-except Exception as e:
-        print(str(e)) # print exception messages
-        reset() # reset the device if any exception is caught
+    except ce.InvalidMinMaxException as me:
+            print(me.message)
+            blink(BLINK_DELAY_SENSOR_CONF_ERROR)
+            # We do not reset since maybe some data can maybe be sent
+    except Exception as e:
+            print(str(e)) # print exception messages
+            reset() # reset the device if any exception is caught
