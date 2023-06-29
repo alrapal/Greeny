@@ -53,8 +53,12 @@ MIN_LIGHT = 300 # Corresponds to the sensor being in the sun
 MAX_LIGHT = 2000 # Corresponds to the sensor being under a blanket to mimic dark environment
 
 # Alarm object for controlling deepsleep duration 
+<<<<<<< HEAD
 rtc = RTC()
 DELAY = 5000 # delay in ms between each awakening
+=======
+DELAY = 1000 * 3600 # delay in ms between each awakening -> 1000ms * 3600 = 1h
+>>>>>>> bb16dcf83ca2427e104c6f9f4dfbd39e548279df
 
 '''
 ##################################################################################
@@ -127,12 +131,20 @@ try:
     print("Soil moist (%) {}%".format(percentage_moist))
     print("Temperature is {} degrees Celsius and Humidity is {}%".format(current_temperature, current_humidity))
     print("###################################")
+<<<<<<< HEAD
 
     # Call the garbage collector to clean memory
     gc.collect()
     
     rtc.alarm(rtc.ALARMO, DELAY) #sets the alarm to walk up from deep sleep
     deepsleep() # goes into deepsleep -> deepsleep reset the device so boot and main will be executed again. This allows us to not use a while loop. 
+=======
+    sleep(1)
+    # Call the garbage collector to clean memory
+    gc.collect()
+    
+    deepsleep(DELAY) # goes into deepsleep -> deepsleep reset the device so boot and main will be executed again. This allows us to not use a while loop. 
+>>>>>>> bb16dcf83ca2427e104c6f9f4dfbd39e548279df
 
 except ce.InvalidMinMaxException as me:
         print(me.message)
