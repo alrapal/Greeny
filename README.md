@@ -17,6 +17,12 @@ This tutorial is part of the Applied IoT course given by Linnaeus University dur
   - [Putting everything together](#putting-everything-together)
   - [Platform](#platform)
   - [The code](#the-code)
+    - [Class Diagram](#class-diagram)
+    - [AnalogSensor class](#analogsensor-class)
+    - [WifiConnector class](#wificonnector-class)
+    - [MQTTclient class](#mqttclient-class)
+    - [my\_secrets](#my_secrets)
+    - [boot and main](#boot-and-main)
   - [Transmitting the data / connectivity](#transmitting-the-data--connectivity)
   - [Presenting the data](#presenting-the-data)
   - [Finalizing the design](#finalizing-the-design)
@@ -88,7 +94,7 @@ The Pico W, by default, does not work out of the box with micropython. We need f
 |**2**|Maintain pressed the `BOOTSEL` button on the Pico|Enter the flash mode|-|-|
 |**3**|Connect the Pico via USB to the computer|-|-|-|
 |**4**|Enter the Pico Memory|This should appear similar to a usb key|-|-|
-|**5**|Drag and drop the downloaded firmware at step **1** into the Pico memory|This will install the firmware|-|-|
+|**5**|Drag and drop the downloaded firmware from step **1** into the Pico memory|This will install the firmware|-|-|
 |**6**|When the device has dissapeared, disconnect and reconnect the Pico|-|-|-|
 ### Uploading the code onto the Pico W
 Now that the Pico W can interprate micro python code, we need to upload our code to it so that it can be executed. 
@@ -142,8 +148,67 @@ Is your platform based on a local installation or a cloud? Do you plan to use a 
 - [ ] *Explain and elaborate what made you choose this platform <HIGHER GRADE>
 
 ## The code
+### Class Diagram
 
-Import core functions of your code here, and don’t forget to explain what you have done! Do not put too much code here, focus on the core functionalities. Have you done a specific function that does a calculation, or are you using clever function for sending data on two networks? Or, are you checking if the value is reasonable etc. Explain what you have done, including the setup of the network, wireless, libraries and all that is needed to understand.
+The code is build using [`MicroPython`](https://micropython.org) and relies on two different paradigm: Object Oriented Programming (OOP) and procedural programming. 
+The diagram below shows how the code is articulated. 
+`Pin`, `ADC` and `DHT11` are libraries included in  `MicroPython` and are not represented in the diagram for clarity (or not fully for DHT11). 
+
+![picture](./Assets/class_diagram.png)
+
+### AnalogSensor class
+Since the `Greeny` project relies only on analog sensor, I decided to wrap the `ADC` class from `MicroPython` within the `AnalogSensor` class. 
+This class allows better control over which pins are used since it will check the given pin agains a tuple of valid pins (Currently the 3 ADC pins that are built in with the PicoW). This  makes custom error control easier with custom exceptions that are contained in `custom_exceptions.py`, providing meaningful error messages when debuging.
+
+**Tuple and check when calling the constructor**:
+````
+valid_pico_w_analog_pins = (26,27,28) # list of the valid pico w analog pins
+
+class AnalogSensor():
+    def __init__(self, pin, name):
+        if not name.strip():
+            raise InvalidSensorNameException(message="The name of the sensor should not be empty or contain only white spaces")
+        if pin not in valid_pico_w_analog_pins:
+            raise InvalidPinException(message="Invalid Pin provided. The valid analog pins for pico W are 26, 27 or 28")
+````
+
+If the circuit is adapted with and ADC converter, there is just the need to update the tuple with the pins attached to the converter. Similarely, if the code is used with another micro controller, a tuple can be added with the specification of the new microcontroller.
+
+The `AnalogSensor` class provide a standardised set of methods easy to use that allow to calibrate the sensor to retrieve a percentage based on the readings. Several checks are performed to make sure the values provided are consistent with the class' expectations. 
+**Example of error handling and control of accepted data for the min value**:
+````
+@min.setter
+    def min(self, value: int):
+        # check if the value is <= to 0 -> negatives are not allowed
+        if value < 0:
+            raise InvalidMinMaxException(message="The minimum boundary for " + self._name + " should be >= 0")
+        # Check if the max has been defined and in that case if the value is superior or equal to the max -> there should be a gap between min and max with min < max
+        if self._max is not None and value >= self._max:
+            raise InvalidMinMaxException(message="The minimum boundary for " + self._name + " should be < to the maximum boundary")
+        self._min = value
+````
+
+### WifiConnector class
+This class is an OOP version of the [provided file](https://hackmd.io/@lnu-iot/rJVQizwUh). It has been adapted with some extra attributes and the method to disconnect from the network. This has been done originally to be able to send a clean event to the MQTT broker and eventually trigger an event, giving the possibility to differenciate a clean disconnection from an unexcpected one. 
+
+### MQTTclient class
+The MQTT client class is taken from [Rui Santos](https://github.com/RuiSantosdotme), and is available [here](https://raw.githubusercontent.com/RuiSantosdotme/ESP-MicroPython/master/code/MQTT/umqttsimple.py)
+
+The code lacks documentation but is pretty straight forward if you have MQTT knowledge. We use it to instanciate a client and connect it to a given broker. Then we use the client in `main` to publish messages. 
+
+### my_secrets
+A file containing all the credentials is missing from this repository. This is to avoid exposing credentials to an public place. This file contains several dictionnaries with different credientials (wifi, mqtt) to be able to connect to the different services. 
+a dummy file named `change_my_secrets.py` is provided instead. The credential to use should be put there and the file should be renamed to `my_secrets.py` to be able to connect.
+
+### boot and main
+`boot`and `main` are not classes but uses the previous classes with a procedural paradigm. 
+`boot` is in charge of connecting to the wifi and to the mqtt broker using `WifiConnector` and  `MQTTClient` and their respective methods. 
+`main` is where the sensors are instanciated. It uses the `MQTTClient` in `boot` to publish the different messages to the MQTT broker. 
+
+In `main.py`, we instanciate the ligh sensor, soil moisture sensor and DHT11 sensor. Then, we set the min and max to be able to retrieve a percentage value which is more inelligible than a raw value. To define those value, we read the raw value in both extremes conditions (raw value in sun light and in complete darkness for the light sensor and in the air and in water for the soil moisture sensor). 
+However, the way the sensor work implies that the retrieve pecentage is the percentage of darkness and dryness. This is wy we reverse that percentage before sending it because it is more intuitive to the user to receive a percentage of moisture and lightning than their nemesis. 
+
+More information about the connectivity and the data formats is available in the [next section](#transmitting-the-data--connectivity)
 
 ## Transmitting the data / connectivity
 
