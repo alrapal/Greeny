@@ -14,7 +14,7 @@ import custom_exceptions as ce  # custom exceptions for error handling
 
 from boot import blink, mqtt_client
 from analog_sensor import AnalogSensor      # Analog sensor module which provides an extra abstraction layer and more control over the analog sensors
-from machine import Pin, reset          # micropython library for pin access      
+from machine import Pin, reset, reset_cause          # micropython library for pin access      
 from time import sleep            # time functions
 from my_secrets import mqtt_feeds    # secret file with credentials
 '''
@@ -27,7 +27,7 @@ Global Variables and Objects
 ##################################################################################
 '''
 # delays
-DELAY = 900 # delay in s between each readings -> 15 minutes
+DELAY = 1800 # delay in s between each readings -> 30 minutes
 BLINK_DELAY_UNKNOWN_ERROR = 500 # in ms define the blink delay for unkown errors
 BLINK_DELAY_SENSOR_CONF_ERROR = 100 # blink delay for analog sensor configuration error
 BLINK_DELAY_SENSOR_READING_ERROR = 1000
@@ -93,25 +93,26 @@ except Exception as e:
 
 while True:
     try: 
+        print("Reset cause: {}".format(reset_cause()))
         dht11_sensor.measure()
         current_temperature = dht11_sensor.temperature()
-        mqtt_client.publish(topic=MQTT_AMBIENT_TEMP_FEED,msg=str(current_temperature))
+        mqtt_client.publish(topic=MQTT_AMBIENT_TEMP_FEED,msg=str(current_temperature),qos=1)
         blink(BLINK_DELAY_SENDING_DATA)
 
         current_humidity = dht11_sensor.humidity()
-        mqtt_client.publish(topic=MQTT_AMBIENT_HUMI_FEED,msg=str(current_humidity))
+        mqtt_client.publish(topic=MQTT_AMBIENT_HUMI_FEED,msg=str(current_humidity),qos=1)
         blink(BLINK_DELAY_SENDING_DATA)
 
         percentage_darkness = light_sensor.get_percentage_data()
         # We calculate the complementary percentage because it is more intuitive to think about % of light instead of darkness
         percentage_light = 100 - percentage_darkness 
-        mqtt_client.publish(topic=MQTT_AMBIENT_LIGHT,msg=str(percentage_light))
+        mqtt_client.publish(topic=MQTT_AMBIENT_LIGHT,msg=str(percentage_light),qos=1)
         blink(BLINK_DELAY_SENDING_DATA)
 
         percentage_dryness = soil_sensor.get_percentage_data()
         # We calculate the complementary percentage because it is more intuitive to think about % of humidity instead of dryness
         percentage_moist = 100 - percentage_dryness 
-        mqtt_client.publish(topic=MQTT_SOIL_MOISTURE_FEED, msg=str(percentage_moist))
+        mqtt_client.publish(topic=MQTT_SOIL_MOISTURE_FEED, msg=str(percentage_moist),qos=1)
         blink(BLINK_DELAY_SENDING_DATA)
 
         # Print info into the console
