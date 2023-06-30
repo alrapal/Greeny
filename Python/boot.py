@@ -13,7 +13,7 @@ import gc
 from wifi import WifiConnector
 from mqtt import MQTTClient, MQTTException  # mqtt module and its exceptions
 from my_secrets import mqtt_credentials  # secrets is not pushed to avoid having WIFI access on github
-from machine import Pin, reset
+from machine import Pin, reset, unique_id
 from time import sleep_ms
 '''
 ##################################################################################
@@ -32,7 +32,7 @@ MQTT_SERVER = "io.adafruit.com"
 MQTT_PORT = 1883
 MQTT_USER = mqtt_credentials['username']
 MQTT_KEY = mqtt_credentials['key']
-MQTT_CLIENT_ID = "Greeny_paralex"  # Can be anything TODO: should be made unique
+MQTT_CLIENT_ID = "Greeny_paralex" + unique_id()
 '''
 ##################################################################################
 ##################################################################################
@@ -86,6 +86,7 @@ try:
 
     # establish connection to MQTT server
     mqtt_client.connect()           # connect to mqtt
+    sleep_ms(100)
     mqtt_client.publish(topic="paralex/feeds/last-will", msg="0") # publish a connection status to the adafruit interface
     
 
