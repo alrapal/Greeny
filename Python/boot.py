@@ -28,11 +28,12 @@ Global Variables and Objects
 built_in_led = Pin("LED", Pin.OUT)
 
 # MQTT parameters
-MQTT_SERVER = "io.adafruit.com"
-MQTT_PORT = 1883
+MQTT_SERVER = mqtt_credentials['server']
+MQTT_PORT = mqtt_credentials['port']
 MQTT_USER = mqtt_credentials['username']
 MQTT_KEY = mqtt_credentials['key']
-MQTT_CLIENT_ID = "Greeny_paralex" + unique_id()
+MQTT_CLIENT_ID = "Greeny_paralex_pico_w" + str(unique_id())
+MQTT_KA = 900
 '''
 ##################################################################################
 ##################################################################################
@@ -71,7 +72,7 @@ Functions section
 try: 
     # Instanciate the objects that will allow wifi and mqtt manipulations
     wifi_connector = WifiConnector()
-    mqtt_client = MQTTClient(client_id=MQTT_CLIENT_ID, server=MQTT_SERVER, port=MQTT_PORT, user=MQTT_USER, password=MQTT_KEY)
+    mqtt_client = MQTTClient(client_id=MQTT_CLIENT_ID, server=MQTT_SERVER, port=MQTT_PORT, user=MQTT_USER, password=MQTT_KEY, keepalive=MQTT_KA)
     mqtt_client.set_callback(sub_cb) # sets the method to use on message received. We do not subscribe to any channel so this will not be used. 
 
     # connects to wifi 
