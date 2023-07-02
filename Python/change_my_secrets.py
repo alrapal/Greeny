@@ -9,9 +9,9 @@ mqtt_credentials = {
 }
 
 mqtt_feeds = {
-    'built_in_led':'',
-    'ambient_temperature':'',
-    'ambient_humidity':'',
-    'ambient_light':'',
-    'soil_moisture': ''
+    'ambient_temperature':'greeny/feeds/temperature',
+    'ambient_humidity':'greeny/feeds/ambient-humidity',
+    'ambient_light':'greeny/feeds/ambient-light',
+    'soil_moisture': 'greeny/feeds/soil-moisture',
+    'device_monitoring':'greeny/feeds/monitoring'
 }
