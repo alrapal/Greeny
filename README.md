@@ -107,16 +107,16 @@ For the Integrated Development environment (IDE), we will use Visual Studio Code
 
 **The Pico can now run your MicroPython code**
 ### Uploading the code onto the Pico W
-**Now that the Pico W can interprate micro python code, we need to upload our code to it so that it can be executed. For that, we will download the code from this repository and use the IDE we have installed to upload it.**
+**Now that the Pico W can interprate MicroPython code, we need to upload our code to it so that it can be executed. For that, we will download the code from this repository and use the IDE we have installed to upload it.**
 
 |Step|Dependency|Usage|Command|Link|
 |---|---|---|---|---|
 |**1**|Using the terminal, go to the folder of your choice|Select a folder for downloading the project|`cd <path/where/to/download>`| - |
 |**2**|Clone the current repository|Download the code on your computer|`git clone git@github.com:alrapal/sleeptight.git` (recommended) **or** `git clone https://github.com/alrapal/sleeptight.git` |[Github repository with MicroPython code](https://github.com/alrapal/sleeptight/tree/main/)
-|**3**|Enter the Python folder from the repository|This where the MicroPython code is|`cd Python`|-|
+|**3**|Enter the MicroPython folder from the repository|This where the MicroPython code is|`cd Python`|-|
 |**4**|Open the folder in VS code|This is to be able to upload the code into the controller using pymakr|`code .`|-|
 ||
-|**3.alt**|Open the Python folder manually via VS code|It is possible that the previous command does not work and needs to be activated. In this case, you can also open the Python folder directly using VS code| - | - |
+|**3.alt**|Open the MicroPython folder manually via VS code|It is possible that the previous command does not work and needs to be activated. In this case, you can also open the MicroPython folder directly using VS code| - | - |
 ||
 |**5**|Go to the file `change_my_secrets.py` and add your credentials on the relevant fields|This will allow the Pico to connect to the **MQTT** broker of your choice and to the **WiFi** of your choice. `ssid` is your **WiFi** network's name.|-|-|
 |**6**|Rename the file as `my_secrets.py`|Otherwise the Pico will not be able to find the file.|-|-|

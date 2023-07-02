@@ -6,7 +6,7 @@ on:
     branches:
       - '*'
     paths:
-      - 'Python/**'
+      - 'MicroPython/**'
   pull_request:
     branches:
       - main
@@ -28,5 +28,5 @@ jobs:
     # use micro python to build the main.py file -> only checks for syntax, libraries are not checked. TODO: Should configure pylint for micropython later
     - name: Build Micropython program
       run: |
-        cd ${{ github.workspace }}/Python # Path to micropython project
+        cd ${{ github.workspace }}/MicroPython # Path to micropython project
         ../micropython/mpy-cross/build/mpy-cross -march=xtensawin main.py # relative path + .py file to build 
