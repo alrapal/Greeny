@@ -176,6 +176,7 @@ You can decide to include the **MQTT** broker in your Docker compose setup, but 
 This setup allows me to have full control of the data and setup the broker as it fits my use case, wherease docker allows me to deploy and setup in one command my solution as well as enable compatibility with any system. 
 The only drawback is that I need my computer to run to be able to store the data. also, it requires to be cautious if you plan on exposing your broker to the internet since it can make your system vulnerable, You can also run your system entirely locally if you want. More details about the data transmition is available [here](#transmitting-the-data--connectivity).
 
+The TIG-stack I use is an updated version of the one provided for the course (using latest version of Graphana / Telegraf / InfluxDB). It is available in the `TIG-stack` folder of this repository. 
 ## The code
 ### Class Diagram
 
@@ -256,7 +257,7 @@ For convenience, the router has not be represented here but it acts as a gateway
 ### Protocols
 The Pico connects to the gateway using **WiFi**. I tested **LoRaWAN** which is a long range more energy efficient protocol but I was out of range of a gateway. In my use case, since this is a stationnary in house monitoring station powered by USB, the choice of **WiFi** is still relevant and suitable. It also allows me to use my own router as the gateway instead of relying on an external one.
 If **LoRaWAN** had been available, it would have been a nice choice since it would have allowed the decive to be more portable and less energy demanding.
-To compensate, I tried to use the `deepsleep` function of the Pico but it seems that it is not working properly and wakes up at random times. So I decided to disconnect from **WiFi** and **MQTT** after the data has been sent and reconnect when a new batch of data has to be sent. If this is not perfect, it does not maintain an active connection a lower the consumption of the Pico during time it is sleeping. 
+To compensate, I tried to use the `deepsleep` function of the Pico but it seems that it is not working properly and wakes up at random times. More investigation need to be done to fix this problem. An alternative to reduce somhow energy consumption would be to disconnect from WIFI when the messages have been sent and reconnect when we enter a new loop. This is not ideal with the current organisation of the code though, since it would not make sense anymore to connect in boot. Refactorisation would be necessary to keep the code clean and easily maintanable. 
 
 The data is transmitted via **MQTT** protocol which is a publish/subscribe protocol. The advantage of this is that it allows distributed event driven architecture systems which are common within domotic and monitoring systems such as `Greeny`. Curently, it is sent avery 15 minutes. Depending on how the variations look like, I might go for every 30 min / hour if it is relevant. 15 minutes seems relevant as it provides insight on how fast the soil absorb the moist when the plan is watered (I water it through drainage holes). Also, to be able to train AI systems and prediction models, data is required in a subsequent amount. 
 
@@ -286,7 +287,7 @@ I would like to redo this project using the C/C++ sdk (which is why the reposito
 On the Docker side and MQTT broker side, I might consider to include the broker inside the Docker-compose to make it very easy to deploy.
 More customisation and maybe using more recent versions of the TIG stack is also on the TODO list. 
 
-Finally, I plan on implementing some MQTT based health monitoring system of the Pico, to be able to monitor its behaviour (What were the reset causes if there were resets for instance) 
+Finally, I plan on implementing some MQTT based health monitoring system of the Pico, to be able to monitor its behaviour (What were the reset causes if there were resets for instance).
 
 ![plant and system](Assets/plant_and_system.jpg)
 
