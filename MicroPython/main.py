@@ -28,7 +28,7 @@ Global Variables and Objects
 ##################################################################################
 '''
 # delays
-DELAY = 900 # delay in s between each readings -> 15 minutes
+DELAY = 1800 # delay in s between each readings -> 15 minutes
 BLINK_DELAY_UNKNOWN_ERROR = 500 # in ms define the blink delay for unkown errors
 BLINK_DELAY_SENSOR_CONF_ERROR = 100 # blink delay for analog sensor configuration error
 BLINK_DELAY_SENSOR_READING_ERROR = 1000

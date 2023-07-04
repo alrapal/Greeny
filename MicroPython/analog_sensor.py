@@ -1,5 +1,5 @@
 from machine import ADC, Pin
-from .custom_exceptions import InvalidPinException, InvalidMinMaxException, InvalidSensorNameException
+from custom_exceptions import InvalidPinException, InvalidMinMaxException, InvalidSensorNameException
 from time import sleep_ms
 
 valid_pico_w_analog_pins = (26,27,28) # list of the valid pico w analog pins

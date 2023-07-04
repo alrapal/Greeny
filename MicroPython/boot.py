@@ -10,7 +10,7 @@ Import section
 
 import gc
 
-from wifi import WifiConnector
+from WIFI import WifiConnector
 from mqtt import MQTTClient, MQTTException  # mqtt module and its exceptions
 from my_secrets import mqtt_credentials  # secrets is not pushed to avoid having WIFI access on github
 from machine import Pin, reset, unique_id
