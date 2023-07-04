@@ -166,3 +166,5 @@ my_secrets.py
 
 # Build micropython files 
 *.mpy
+
+.env
