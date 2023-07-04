@@ -1,7 +1,14 @@
+import sys
+import os
+
+# Get the current directory for appending so that unittest finds the module. 
+current_dir = os.getcwd()
+# Append the parent directory to sys.path if needed
+sys.path.append(current_dir + '/MicroPython')
+
 from unittest.mock import MagicMock
 import unittest
-import sys
-from ..custom_exceptions import *
+from custom_exceptions import *
 # Create a mock machine module since it is MicroPython dependent
 mock_machine = MagicMock()
 sys.modules['machine'] = mock_machine
@@ -29,7 +36,7 @@ class MockPin:
 mock_machine.ADC.return_value = MockADC()
 mock_machine.Pin.return_value = MockPin()
 
-from MicroPython.analog_sensor import AnalogSensor
+from ..analog_sensor import AnalogSensor
 
 class TestAnalogSensor(unittest.TestCase):
     def test_get_raw_data(self):
