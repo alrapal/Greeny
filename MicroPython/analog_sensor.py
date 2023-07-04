@@ -1,5 +1,5 @@
 from machine import ADC, Pin
-from custom_exceptions import InvalidPinException, InvalidMinMaxException, InvalidSensorNameException
+from .custom_exceptions import InvalidPinException, InvalidMinMaxException, InvalidSensorNameException
 from time import sleep_ms
 
 valid_pico_w_analog_pins = (26,27,28) # list of the valid pico w analog pins
@@ -89,27 +89,30 @@ class AnalogSensor():
     def calculate_percentage_data(self, value) -> float:
         '''
         Return the value in percentage based on the _min and the _max for the provided value
-        If out of bound, returns max or min. 
+        If out of bound, returns closest max or min. 
         '''
         if self._max is None or self._min is None:
-            raise InvalidMinMaxException(message="Minimum and / or maximum boundaries are not define for sensor " + self._name)
+            raise InvalidMinMaxException(message="Minimum and/or maximum boundaries are not defined for sensor " + self._name)
+
+        if value <= self.min:
+            return 0.0
+        if value >= self.max:
+            return 100.0
         
-        # clamp the value between _min and _max to ensure it falls within the range
-        value_clamped = max(self._min, min(self._max, value))
-        return ((value_clamped - self._min) / (self._max - self._min)) * 100
+        adjusted_max = self.max - self.min
+        adjusted_value = value - self.min
+        percentage = adjusted_value / adjusted_max * 100
+        
+        return percentage
 
     def get_percentage_data(self) -> float:
         '''
         Reads the sensor value and returns the value in percentage based on the _min and the _max
         If out of bound, returns closest max or min. 
         '''
-
-        if self._max is None or self._min is None:
-            raise InvalidMinMaxException(message="Minimum and / or maximum boundaries are not define for sensor " + self._name)
-        
         # clamp the value between _min and _max to ensure it falls within the range
-        value_clamped = max(self._min, min(self._max, self.get_raw_data()))
-        return int(((value_clamped - self._min) / (self._max - self._min)) * 100)
+        result = self.calculate_percentage_data(value=self.get_raw_data())
+        return result
     
     def calibrate_min(self):
         '''
@@ -123,7 +126,7 @@ class AnalogSensor():
         for _ in range(iterations):
             total += self.get_raw_data()
             sleep_ms(ms_interval)
-        self.min = int(total/iterations) # we use the setter to check for the exceptions
+        self.min = int(round(total/iterations)) # we use the setter to check for the exceptions
     
     def calibrate_max(self):
         '''
@@ -136,7 +139,7 @@ class AnalogSensor():
         for _ in range(iterations):
             total += self.get_raw_data()
             sleep_ms(ms_interval)
-        self.max = int(total/iterations) # we use the setter to check for the exceptions
+        self.max = int(round(total/iterations)) # we use the setter to check for the exceptions
 
     def __str__(self):
         '''
