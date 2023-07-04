@@ -41,6 +41,9 @@ services:
         image: telegraf:1.25.3
         depends_on: 
             - "influxdb"
+        # We explicit the .env file so that telegraf.conf can access the variables declared in it. 
+        env_file:
+          - .env
         environment:
             HOST_NAME: "telegraf"
             INFLUXDB_HOST: "influxdb"
