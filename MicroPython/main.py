@@ -119,7 +119,7 @@ while True:
 
         percentage_darkness = light_sensor.get_percentage_data()
         # We calculate the complementary percentage because it is more intuitive to think about % of light instead of darkness
-        percentage_light = 100 - percentage_darkness 
+        percentage_light = round(100 - percentage_darkness, 0)
         data = {
             'light': percentage_light
         }
@@ -131,7 +131,7 @@ while True:
 
         percentage_dryness = soil_sensor.get_percentage_data()
         # We calculate the complementary percentage because it is more intuitive to think about % of humidity instead of dryness
-        percentage_moist = 100 - percentage_dryness 
+        percentage_moist = round(100 - percentage_dryness,0)
         data = {
             'moist': percentage_moist
         }

@@ -30,3 +30,8 @@ jobs:
       run: |
         cd ${{ github.workspace }}/MicroPython # Path to micropython project
         ../micropython/mpy-cross/build/mpy-cross -march=xtensawin main.py # relative path + .py file to build 
+        
+    # run unittest module
+    - name: Run unittest
+      run: |
+        python -m unittest --verbose
