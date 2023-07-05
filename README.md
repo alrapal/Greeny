@@ -270,7 +270,7 @@ The data is saved as soon it receives a new message from the broker. Normally ev
 
 ![Graphana Dashboard](Assets/graphana_dashboard.png)
 
-With **Graphana**, it is possible to setup alerts for a given query. I setup so that if the mean value of the soil moisture sensor for the last 12h is less then 15%, an email is sent. The check is triggered every 6h. If the checks pass, a little green heart is displayed to show that the query passed the alert check. 
+With **Graphana**, it is possible to setup alerts for a given query. I setup so that if the mean value of the soil moisture sensor for the last 12h is less then 15%, a message is sent on my discord server using webhooks. The check is triggered every 6h. If the check passes, a little green heart is displayed to show that the query passed the alert check. 
 
 ## Finalizing the design
 This is how locally the different hosted software look like:
