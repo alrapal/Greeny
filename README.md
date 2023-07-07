@@ -24,6 +24,7 @@ This tutorial is part of the Applied IoT course evaluation given by Linnaeus Uni
   - [MQTTclient class](#mqttclient-class)
   - [my\_secrets](#my_secrets)
   - [boot and main](#boot-and-main)
+  - [Unit testing](#unit-testing)
 - [Transmitting the data / connectivity](#transmitting-the-data--connectivity)
   - [Deployment diagram](#deployment-diagram)
   - [Data's journey](#datas-journey)
@@ -50,7 +51,7 @@ More information about the sensors available [here](#material)
 To assemble the device and upload the code should take you around 30 minutes. 
 
 ## Objective
-I am not extaclty the best gardener and I've always struggled to water my plants at due time. As a responsible plant owner, I had to be better and IoT can help me reaching my goal. Beside giving me direct indication on when my plants need to be watered, I plan to use the combination of data from the environment and the soil to help me undertsand how my plants react to these different factors. When do they drink the most, in which conditions. This is more of a long term goal but with time, I hope to collect enough data to be able to map a unique hydrolic behaviour for each plant. 
+I am not exactly the best gardener, and I've always struggled to water my plants at the due time. As a responsible plant owner, I had to improve, and IoT can help me achieve my goal. Besides providing me with direct indications of when my plants need to be watered, I plan to utilize the combination of data from the environment and the soil to help me understand how my plants react to these different factors. When do they consume the most water, and under which conditions? This is more of a long-term objective, but over time, I hope to gather enough data to be able to identify a unique watering behavior for each plant. 
 
 ## Material
 
@@ -191,7 +192,7 @@ Since the `Greeny` project relies only on analog sensor, I decided to wrap the `
 This class allows better control over which pins are used since it will check the given pin agains a tuple of valid pins (Currently the 3 ADC pins that are built in with the PicoW). This  makes custom error control easier with custom exceptions that are contained in `custom_exceptions.py`, providing meaningful error messages when debuging.
 
 **Tuple and check when calling the constructor**:
-````
+````python
 valid_pico_w_analog_pins = (26,27,28) # list of the valid Pico w analog pins
 
 class AnalogSensor():
@@ -206,7 +207,7 @@ If the circuit is adapted with and ADC converter, there is just the need to upda
 
 The `AnalogSensor` class provide a standardised set of methods easy to use that allow to calibrate the sensor to retrieve a percentage based on the readings. Several checks are performed to make sure the values provided are consistent with the class' expectations. 
 **Example of error handling and control of accepted data for the min value**:
-````
+````python
 @min.setter
     def min(self, value: int):
         # check if the value is <= to 0 -> negatives are not allowed
@@ -240,6 +241,29 @@ However, the way the sensor work implies that the retrieve pecentage is the perc
 
 More information about the connectivity and the data formats is available in the [next section](#transmitting-the-data--connectivity)
 
+### Unit testing
+One particular challenge is to debug embedded systems. So many different parameters can go wrong. Is the sensor broken? Is the code not working as expected? Are the broker or the client stack not working? 
+
+To help narrow down and ease the identification of bugs, I implemented [unit tests](https://github.com/alrapal/Greeny/tree/main/MicroPython/tests) for the `AnalogSensor` class. The other classes were provided so I just assume they were working. 
+However, the software is suppose to use `MicroPython` which runs on embedded devices and some libraries only available in `MicroPython`needed to be mocked to enable Continuous Integration to run them at each commit and merge request using GitHub actions.
+
+```python
+from unittest.mock import MagicMock
+import unittest
+from custom_exceptions import *
+# Create a mock machine module since it is MicroPython dependent
+mock_machine = MagicMock()
+sys.modules['machine'] = mock_machine
+
+# Create a mock time module since it is MicroPython dependent (sleep_ms)
+mock_time = MagicMock()
+sys.modules['time'] = mock_time
+```
+
+This helped me asserting that my methods were working as expected which, in case of unexpected readings, would help me focus my debugging efforts on the sensors or other aspects of the system. 
+
+
+These unit tests 
 ## Transmitting the data / connectivity
 ### Deployment diagram
 ![Deployment diagram](Assets/deployment_diagram.png)
@@ -290,6 +314,3 @@ More customisation and maybe using more recent versions of the TIG stack is also
 Finally, I plan on implementing some MQTT based health monitoring system of the Pico, to be able to monitor its behaviour (What were the reset causes if there were resets for instance).
 
 ![plant and system](Assets/plant_and_system.jpg)
-
-
-
