@@ -262,8 +262,6 @@ sys.modules['time'] = mock_time
 
 This helped me asserting that my methods were working as expected which, in case of unexpected readings, would help me focus my debugging efforts on the sensors or other aspects of the system. 
 
-
-These unit tests 
 ## Transmitting the data / connectivity
 ### Deployment diagram
 ![Deployment diagram](Assets/deployment_diagram.png)
