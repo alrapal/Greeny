@@ -7,4 +7,3 @@ MQTT_SERVER=tcp://iot-edu-lab.lnu.se:1883
 MQTT_USERNAME=king
 MQTT_PASSWORD=arthur
 MQTT_TOPICS="devices/#"
-
