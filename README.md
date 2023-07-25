@@ -11,7 +11,7 @@ This tutorial is part of the Applied IoT course evaluation given by Linnaeus Uni
 - [Material](#material)
 - [Computer setup](#computer-setup)
   - [Preparing the development environment](#preparing-the-development-environment)
-  - [Preparing the Pico W for Micropython (More info here)](#preparing-the-pico-w-for-micropython-more-info-here)
+  - [Preparing the Pico W for Micropython](#preparing-the-pico-w-for-micropython-more-info-herehttpswwwraspberrypicomdocumentationmicrocontrollersmicropythonhtmldrag-and-drop-micropython)
   - [Uploading the code onto the Pico W](#uploading-the-code-onto-the-pico-w)
 - [Putting everything together](#putting-everything-together)
 - [Platform](#platform)
@@ -68,7 +68,7 @@ Capacitive Soil Sensor|Soil humidity sensor|67.99 kr|[AZ-Delivery via Amazon](ht
 |Push button|Button for manual interaction with the board|5.50 kr|[Electrokit](https://www.electrokit.com/en/product/push-button-pcb-3mm-black/)|-|-|
 |1kohm resistor|Resistance to use with button|1 kr|[Electrokit](https://www.electrokit.com/en/product/resistor-carbon-film-0-25w-1kohm-1k/)|-|1Koms resistance
 
-**Currently, the code does not use the push button. This is because of a problem with a low power consumption mode not being functionning as intended on the Pico W. When this is fixed, the button will be used to awaken from the mode and send data on a manual trigger.** 
+**Currently, the code does not use the push button. This is because of a problem with a low power consumption mode not being functionning as intended on the Pico W with MicroPython. When this is fixed, the button will be used to awaken from the mode and send data on a manual trigger.** 
 
 **Total estimated price: 406.49 kr**
 
@@ -242,7 +242,7 @@ However, the way the sensor work implies that the retrieve pecentage is the perc
 More information about the connectivity and the data formats is available in the [next section](#transmitting-the-data--connectivity)
 
 ### Unit testing
-One particular challenge is to debug embedded systems. So many different parameters can go wrong. Is the sensor broken? Is the code not working as expected? Are the broker or the client stack not working? 
+One particular challenge is to debug embedded systems. So many different parameters can generate bugs. Is the sensor broken? Is the code not working as expected? Are the broker or the client stack not working? 
 
 To help narrow down and ease the identification of bugs, I implemented [unit tests](https://github.com/alrapal/Greeny/tree/main/MicroPython/tests) for the `AnalogSensor` class. The other classes were provided so I just assume they were working. 
 However, the software is suppose to use `MicroPython` which runs on embedded devices and some libraries only available in `MicroPython`needed to be mocked to enable Continuous Integration to run them at each commit and merge request using GitHub actions.
